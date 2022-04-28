@@ -3,28 +3,24 @@ module Main where
     import Raytracer
 
     spheres :: [Sphere]
-    spheres = [s]
+    spheres = [green, red]
         where
-            s = Sphere {
+            green = Sphere {
             center=(0, 0, 5),
             radius=1,
-
-            diffuse=Color {
-                color=PixelRGB8 0 255 0,
-                intensity=1.0
-            },
-
-            ambient=Color {
-                color=PixelRGB8 0 255 0,
-                intensity=0.75
-            },
-
-            specular=Color {
-                color=PixelRGB8 255 255 255,
-                intensity=1.0
-            },
+            diffuse=Color {color=PixelRGB8 0 255 0, intensity=1.0},
+            ambient=Color {color=PixelRGB8 0 255 0, intensity=0.75},
+            specular=Color {color=PixelRGB8 255 255 255, intensity=1.0},
             specularCoeff=100
         }
+            red = Sphere {
+                center=(-1,1,4),
+                radius=0.5,
+                diffuse=Color{color=PixelRGB8 255 0 0, intensity=1.0},
+                ambient=Color{color=PixelRGB8 255 0 0, intensity=0.8},
+                specular=Color{color=PixelRGB8 255 255 255, intensity=1.0},
+                specularCoeff=1000
+            }
 
     cam = Camera {
         co=(0.0, 0.0, 0.0),
@@ -41,7 +37,7 @@ module Main where
         background=PixelRGB8 117 117 117,
         camera=cam,
         objects=spheres,
-        lightPos=(2, 2, 5)
+        lights=[(2, 2, 5), (-2, 1, 5)]
 
     }   
     main :: IO ()

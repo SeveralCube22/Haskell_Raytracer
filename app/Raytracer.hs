@@ -41,7 +41,7 @@ module Raytracer where
         background :: PixelRGB8,
         camera :: Camera,
         objects :: [Sphere],
-        lightPos :: TVec3
+        lights :: [TVec3]
     }
 
     data Color = Color {
@@ -94,7 +94,7 @@ module Raytracer where
 
     getColor :: Scene -> Maybe Sphere -> Ray -> Double -> PixelRGB8
     getColor scene obj ray d = case obj of
-        Just sphere -> calculateColor ray d sphere (lightPos scene)
+        Just sphere -> calculateAllLightsColor ray d sphere (lights scene)
         Nothing -> background scene
 
     calculateNormal :: Ray -> Double -> TVec3 -> TVec3
@@ -128,19 +128,36 @@ module Raytracer where
     intToWord8 :: Integer -> Word8
     intToWord8 x = convert x
 
-    calculateColor :: Ray -> Double -> Sphere -> TVec3 -> PixelRGB8
-    calculateColor ray d sphere lightPos = PixelRGB8 nr ng nb
+    calculateAllLightsColor :: Ray -> Double -> Sphere -> [TVec3] -> PixelRGB8
+    calculateAllLightsColor ray d sphere lights = addColor combined ambientColor
+        where
+            allLights = map (calculateLightColor ray d sphere) lights
+            combined = foldl addColor (head allLights) (drop 1 allLights) -- combine lambertian, blinn-phong colors from all light sources
+            ambientColor = calculateScaleColor (ambient sphere) -- ambient
+            
+    addColor :: PixelRGB8 -> PixelRGB8 -> PixelRGB8
+    addColor (PixelRGB8 r1 g1 b1) (PixelRGB8 r2 g2 b2) = PixelRGB8 r3 g3 b3
+        where
+            r3 = intToWord8 (addWord8 r1 r2 `div` 2)
+            g3 = intToWord8 (addWord8 g1 g2 `div` 2)
+            b3 = intToWord8 (addWord8 b1 b2 `div` 2)
+                    
+
+    calculateLightColor :: Ray -> Double -> Sphere -> TVec3 -> PixelRGB8
+    calculateLightColor ray d sphere lightPos = PixelRGB8 nr ng nb
         where
             normal = calculateNormal ray d (center sphere)
             lightDirection = calculateLightDirection ray d lightPos
 
             PixelRGB8 lr lg lb = calculateLambertian (diffuse sphere) normal lightDirection -- lambert
-            PixelRGB8 ar ag ab = calculateScaleColor (ambient sphere)-- ambient
             PixelRGB8 pr pg pb = calculateBlinnPhong (specular sphere) normal lightDirection (normalize (direction ray .^ (-1))) (specularCoeff sphere) -- blinn phong
 
-            nr = intToWord8 (toInteger (word8ToInt lr + word8ToInt ar + word8ToInt pr) `div` 3)
-            ng = intToWord8 (toInteger (word8ToInt lg + word8ToInt ag + word8ToInt pg) `div` 3)
-            nb = intToWord8 (toInteger (word8ToInt lb + word8ToInt ab + word8ToInt pb) `div` 3)
+            nr = intToWord8 (toInteger (word8ToInt lr + word8ToInt pr) `div` 2)
+            ng = intToWord8 (toInteger (word8ToInt lg + word8ToInt pg) `div` 2)
+            nb = intToWord8 (toInteger (word8ToInt lb + word8ToInt pb) `div` 2)
+    
+    addWord8 :: Word8 -> Word8 -> Integer
+    addWord8 w1 w2 = toInteger (word8ToInt w1 + word8ToInt w2)
 
     render :: String -> Scene -> IO ()
     render path scene@(Scene {camera=cam@(Camera {resolution=res, viewport=view}), objects=os}) = writePng path $ generateImage pixelRenderer w h
