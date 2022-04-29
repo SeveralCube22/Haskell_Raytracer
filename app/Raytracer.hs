@@ -144,17 +144,15 @@ module Raytracer where
                     
 
     calculateLightColor :: Ray -> Double -> Sphere -> TVec3 -> PixelRGB8
-    calculateLightColor ray d sphere lightPos = PixelRGB8 nr ng nb
+    calculateLightColor ray d sphere lightPos = color
         where
             normal = calculateNormal ray d (center sphere)
             lightDirection = calculateLightDirection ray d lightPos
 
-            PixelRGB8 lr lg lb = calculateLambertian (diffuse sphere) normal lightDirection -- lambert
-            PixelRGB8 pr pg pb = calculateBlinnPhong (specular sphere) normal lightDirection (normalize (direction ray .^ (-1))) (specularCoeff sphere) -- blinn phong
+            lambertColor = calculateLambertian (diffuse sphere) normal lightDirection -- lambert
+            phongColor = calculateBlinnPhong (specular sphere) normal lightDirection (normalize (direction ray .^ (-1))) (specularCoeff sphere) -- blinn phong
 
-            nr = intToWord8 (toInteger (word8ToInt lr + word8ToInt pr) `div` 2)
-            ng = intToWord8 (toInteger (word8ToInt lg + word8ToInt pg) `div` 2)
-            nb = intToWord8 (toInteger (word8ToInt lb + word8ToInt pb) `div` 2)
+            color = addColor lambertColor phongColor
     
     addWord8 :: Word8 -> Word8 -> Integer
     addWord8 w1 w2 = toInteger (word8ToInt w1 + word8ToInt w2)
